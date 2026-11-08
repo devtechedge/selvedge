@@ -1,0 +1,261 @@
+// Selvedge schema.
+//
+// Roles and lifecycle states are stored as strings so they stay readable in
+// SQL. The TypeScript domain layer is the typed source of truth and the initial
+// migration adds CHECK constraints for the values that matter.
+//
+// Yarn length is integer meters. Draft dimensions are integer centimeters.
+// Sett is integer ends per inch. Percentages are integer percent. All
+// timestamps are UTC. Draft grids (threading, tie-up, treadling, color orders)
+// are JSON so the deterministic engine owns their shape.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Studio {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships  Membership[]
+  looms        Loom[]
+  yarnLots     YarnLot[]
+  drafts       Draft[]
+  projects     Project[]
+  reservations Reservation[]
+  releases     Release[]
+  audit        AuditEvent[]
+
+  @@map("studio")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  memberships  Membership[]
+  sessions     Session[]
+  drafts       Draft[]         @relation("DraftAuthor")
+  projects     Project[]       @relation("ProjectAuthor")
+  releases     Release[]       @relation("ReleaseAuthor")
+  reservations Reservation[]   @relation("ReservationActor")
+  finishing    FinishingLog[]  @relation("FinishingActor")
+  auditEvents  AuditEvent[]
+
+  @@map("user")
+}
+
+model Membership {
+  id        String   @id @default(cuid())
+  studioId  String
+  userId    String
+  role      String
+  createdAt DateTime @default(now())
+
+  studio Studio @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([studioId, userId])
+  @@index([userId])
+  @@map("membership")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("session")
+}
+
+model Loom {
+  id          String   @id @default(cuid())
+  studioId    String
+  name        String
+  shafts      Int
+  treadles    Int
+  reedWidthCm Int
+  status      String   @default("AVAILABLE")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  studio   Studio    @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  projects Project[]
+
+  @@index([studioId])
+  @@map("loom")
+}
+
+model YarnLot {
+  id            String   @id @default(cuid())
+  studioId      String
+  code          String
+  name          String
+  fiber         String
+  dyeRecipe     String
+  colorName     String
+  colorHex      String
+  lengthOnHandM Int
+  reorderM      Int
+  lotNumber     String
+  active        Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  studio       Studio        @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  reservations Reservation[]
+
+  @@unique([studioId, code])
+  @@index([studioId, active])
+  @@map("yarn_lot")
+}
+
+model Draft {
+  id           String   @id @default(cuid())
+  studioId     String
+  name         String
+  shafts       Int
+  treadles     Int
+  ends         Int
+  picks        Int
+  threading    Json
+  tieUp        Json
+  treadling    Json
+  warpColors   Json
+  weftColors   Json
+  settEpi      Int
+  reedWidthCm  Int
+  warpLengthCm Int
+  takeUpPct    Int
+  shrinkagePct Int
+  revision     Int      @default(1)
+  createdById  String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  studio    Studio    @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  createdBy User      @relation("DraftAuthor", fields: [createdById], references: [id])
+  projects  Project[]
+  releases  Release[]
+
+  @@index([studioId])
+  @@map("draft")
+}
+
+model Project {
+  id          String   @id @default(cuid())
+  studioId    String
+  draftId     String
+  loomId      String?
+  name        String
+  status      String   @default("WARP")
+  picksWoven  Int      @default(0)
+  createdById String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  studio       Studio         @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  draft        Draft          @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  loom         Loom?          @relation(fields: [loomId], references: [id], onDelete: SetNull)
+  createdBy    User           @relation("ProjectAuthor", fields: [createdById], references: [id])
+  reservations Reservation[]
+  finishing    FinishingLog[]
+
+  @@index([studioId, status])
+  @@index([draftId])
+  @@map("project")
+}
+
+model Reservation {
+  id        String   @id @default(cuid())
+  studioId  String
+  projectId String
+  yarnLotId String
+  lengthM   Int
+  reason    String
+  actorId   String
+  createdAt DateTime @default(now())
+
+  studio  Studio  @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  yarnLot YarnLot @relation(fields: [yarnLotId], references: [id], onDelete: Restrict)
+  actor   User    @relation("ReservationActor", fields: [actorId], references: [id])
+
+  @@index([studioId, yarnLotId])
+  @@index([projectId])
+  @@map("reservation")
+}
+
+model FinishingLog {
+  id                   String   @id @default(cuid())
+  projectId            String
+  method               String
+  measuredShrinkagePct Int
+  finalWidthCm         Int
+  finalLengthCm        Int
+  notes                String
+  actorId              String
+  createdAt            DateTime @default(now())
+
+  project Project @relation(fields: [projectId], references: [id], onDelete: Cascade)
+  actor   User    @relation("FinishingActor", fields: [actorId], references: [id])
+
+  @@index([projectId])
+  @@map("finishing_log")
+}
+
+model Release {
+  id          String   @id @default(cuid())
+  studioId    String
+  draftId     String
+  version     Int
+  name        String
+  checksum    String
+  snapshot    Json
+  createdById String
+  createdAt   DateTime @default(now())
+
+  studio    Studio @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  draft     Draft  @relation(fields: [draftId], references: [id], onDelete: Restrict)
+  createdBy User   @relation("ReleaseAuthor", fields: [createdById], references: [id])
+
+  @@unique([draftId, version])
+  @@index([studioId])
+  @@map("release")
+}
+
+model AuditEvent {
+  id         String   @id @default(cuid())
+  studioId   String
+  actorId    String
+  action     String
+  entityType String
+  entityId   String
+  detail     Json?
+  createdAt  DateTime @default(now())
+
+  studio Studio @relation(fields: [studioId], references: [id], onDelete: Cascade)
+  actor  User   @relation(fields: [actorId], references: [id])
+
+  @@index([studioId, createdAt])
+  @@index([entityType, entityId])
+  @@map("audit_event")
+}
