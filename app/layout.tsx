@@ -19,6 +19,7 @@ export const metadata: Metadata = {
   },
   description:
     "Draft cloth on multi-shaft looms, manage naturally dyed yarn by dye lot, warp projects, weave pick by pick, and release immutable patterns. A deterministic drawdown engine renders the exact cloth face.",
+  alternates: { canonical: env.siteUrl },
   openGraph: {
     title: "SELVEDGE / a shared handweaving studio",
     description:
