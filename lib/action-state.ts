@@ -3,4 +3,5 @@ export interface ActionState {
   message?: string;
   ok?: boolean;
   link?: string;
+  revision?: number;
 }
