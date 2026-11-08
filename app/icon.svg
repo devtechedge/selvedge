@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-label="Selvedge weave mark">
+  <rect width="32" height="32" fill="#23201c"/>
+  <g fill="#2f4a6d">
+    <rect x="3" y="3" width="6" height="6"/>
+    <rect x="9" y="9" width="6" height="6"/>
+    <rect x="15" y="15" width="6" height="6"/>
+    <rect x="21" y="21" width="6" height="6"/>
+    <rect x="15" y="3" width="6" height="6"/>
+    <rect x="21" y="9" width="6" height="6"/>
+    <rect x="3" y="15" width="6" height="6"/>
+    <rect x="9" y="21" width="6" height="6"/>
+  </g>
+  <rect x="21" y="3" width="6" height="6" fill="#9e4034"/>
+</svg>
