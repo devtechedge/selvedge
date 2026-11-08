@@ -1,5 +1,5 @@
 import { prisma, TX_OPTIONS } from "@/lib/db";
-import { DomainError } from "@/lib/auth";
+import { DomainError, requireStudioRole } from "@/lib/auth";
 import type { ReservationReason } from "@/domain/types";
 
 export interface ReserveYarnInput {
@@ -17,6 +17,7 @@ export interface ReserveYarnInput {
 // two projects can never overdraw one dye lot. The CHECK lengthOnHandM >= 0 is
 // the final database backstop.
 export async function reserveYarn(input: ReserveYarnInput): Promise<void> {
+  await requireStudioRole(input.studioId, input.userId, ["WEAVER", "MANAGER"]);
   await prisma.$transaction(async (tx) => {
     const project = await tx.project.findFirst({
       where: { id: input.projectId, studioId: input.studioId },
@@ -74,6 +75,7 @@ export interface AddYarnLotInput {
 }
 
 export async function addYarnLot(input: AddYarnLotInput): Promise<string> {
+  await requireStudioRole(input.studioId, input.userId, ["DYER", "MANAGER"]);
   const existing = await prisma.yarnLot.findUnique({
     where: { studioId_code: { studioId: input.studioId, code: input.code } },
   });
@@ -112,6 +114,7 @@ export async function recordIntake(input: {
   yarnLotId: string;
   meters: number;
 }): Promise<void> {
+  await requireStudioRole(input.studioId, input.userId, ["DYER", "MANAGER"]);
   const result = await prisma.yarnLot.updateMany({
     where: { id: input.yarnLotId, studioId: input.studioId },
     data: { lengthOnHandM: { increment: input.meters } },

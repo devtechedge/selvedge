@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { DomainError } from "@/lib/auth";
+import { DomainError, requireStudioRole } from "@/lib/auth";
 import { checksumSnapshot } from "@/lib/checksum";
 
 interface DraftSnapshotSource {
@@ -67,6 +67,7 @@ export async function releasePattern(input: {
   draftId: string;
   name: string;
 }): Promise<{ id: string; version: number; checksum: string }> {
+  await requireStudioRole(input.studioId, input.userId, ["MANAGER"]);
   const draft = await prisma.draft.findFirst({
     where: { id: input.draftId, studioId: input.studioId },
   });

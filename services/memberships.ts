@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { DomainError } from "@/lib/auth";
+import { DomainError, requireStudioRole } from "@/lib/auth";
 import type { Role } from "@/domain/types";
 
 export async function changeRole(input: {
@@ -8,6 +8,7 @@ export async function changeRole(input: {
   membershipId: string;
   role: Role;
 }): Promise<void> {
+  await requireStudioRole(input.studioId, input.actorId, ["MANAGER"]);
   const result = await prisma.membership.updateMany({
     where: { id: input.membershipId, studioId: input.studioId },
     data: { role: input.role },

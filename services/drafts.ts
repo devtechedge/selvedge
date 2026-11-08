@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { DomainError } from "@/lib/auth";
+import { DomainError, requireStudioRole } from "@/lib/auth";
 import {
   defaultColorOrders,
   structureByName,
@@ -63,6 +63,7 @@ export interface CreateDraftInput extends WeaveDimensions {
 }
 
 export async function createDraft(input: CreateDraftInput): Promise<string> {
+  await requireStudioRole(input.studioId, input.userId, ["WEAVER", "MANAGER"]);
   const grids = structureByName(input.structure, input.ends, input.picks);
   const colors = defaultColorOrders(input.ends, input.picks);
   const draft = await prisma.draft.create({
@@ -112,6 +113,7 @@ export interface SaveDraftInput extends WeaveDimensions, ColorOrders, DraftGrids
 // matches the one the editor opened. A stale save affects zero rows and is
 // rejected rather than silently overwriting a newer draft.
 export async function saveDraft(input: SaveDraftInput): Promise<number> {
+  await requireStudioRole(input.studioId, input.userId, ["WEAVER", "MANAGER"]);
   const issues = validateGrids(input);
   if (issues.length > 0) throw new DomainError(issues[0].message);
   if (input.warpColors.length !== input.ends) {

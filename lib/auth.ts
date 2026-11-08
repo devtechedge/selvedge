@@ -1,5 +1,6 @@
 import { notFound, redirect } from "next/navigation";
 import { getSessionUser, type SessionUser } from "./session";
+import { prisma } from "./db";
 import type { Role } from "@/domain/types";
 import { isRole } from "@/domain/types";
 
@@ -32,6 +33,26 @@ export async function requireStudio(): Promise<StudioContext> {
 
 export function hasRole(role: Role, allowed: Role[]): boolean {
   return allowed.includes(role);
+}
+
+// Service-level role guard. The actions check the session role for a fast fail,
+// and the services re-verify against the database so a forged or direct call
+// cannot bypass the role. This is what the integration tests exercise.
+export async function requireStudioRole(
+  studioId: string,
+  userId: string,
+  allowed: Role[]
+): Promise<Role> {
+  const membership = await prisma.membership.findUnique({
+    where: { studioId_userId: { studioId, userId } },
+  });
+  if (!membership || !isRole(membership.role)) {
+    throw new AuthorizationError("You are not a member of this studio.");
+  }
+  if (!allowed.includes(membership.role)) {
+    throw new AuthorizationError("Your role does not allow this action.");
+  }
+  return membership.role;
 }
 
 export function assertRole(role: Role, allowed: Role[]): void {

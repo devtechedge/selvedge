@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/db";
+import { requireStudioRole } from "@/lib/auth";
 
 export async function addLoom(input: {
   studioId: string;
@@ -8,6 +9,7 @@ export async function addLoom(input: {
   treadles: number;
   reedWidthCm: number;
 }): Promise<string> {
+  await requireStudioRole(input.studioId, input.userId, ["MANAGER"]);
   const loom = await prisma.loom.create({
     data: {
       studioId: input.studioId,

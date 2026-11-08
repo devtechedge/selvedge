@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/db";
-import { DomainError } from "@/lib/auth";
+import { DomainError, requireStudioRole } from "@/lib/auth";
 import { loomCanDress } from "@/domain/weave";
 import { draftToGrids } from "./drafts";
 import type { FinishingMethod } from "@/domain/types";
@@ -10,6 +10,7 @@ export async function createProject(input: {
   draftId: string;
   name: string;
 }): Promise<string> {
+  await requireStudioRole(input.studioId, input.userId, ["WEAVER", "MANAGER"]);
   const draft = await prisma.draft.findFirst({
     where: { id: input.draftId, studioId: input.studioId },
   });
@@ -43,6 +44,7 @@ export async function assignLoom(input: {
   projectId: string;
   loomId: string;
 }): Promise<void> {
+  await requireStudioRole(input.studioId, input.userId, ["WEAVER", "MANAGER"]);
   const project = await prisma.project.findFirst({
     where: { id: input.projectId, studioId: input.studioId },
     include: { draft: true },
@@ -84,6 +86,7 @@ export async function advanceWeave(input: {
   projectId: string;
   picks: number;
 }): Promise<number> {
+  await requireStudioRole(input.studioId, input.userId, ["WEAVER", "MANAGER"]);
   const project = await prisma.project.findFirst({
     where: { id: input.projectId, studioId: input.studioId },
     include: { draft: true },
@@ -114,6 +117,7 @@ export async function finishProject(input: {
   finalLengthCm: number;
   notes: string;
 }): Promise<void> {
+  await requireStudioRole(input.studioId, input.userId, ["WEAVER", "MANAGER"]);
   const project = await prisma.project.findFirst({
     where: { id: input.projectId, studioId: input.studioId },
   });
