@@ -20,7 +20,7 @@
   --rule-soft: color-mix(in srgb, var(--ink) 12%, transparent);
   --rule-light: color-mix(in srgb, var(--bone) 20%, transparent);
   --status-good: #3f5d3a;
-  --status-progress: #8a5a12;
+  --status-progress: #6f4504;
   --status-error: #8a3b25;
   --serif: "Fraunces", Georgia, "Times New Roman", serif;
   --sans: "Archivo", "Helvetica Neue", Arial, sans-serif;
@@ -663,6 +663,11 @@ canvas {
 
 .landing-foot p {
   margin: 0;
+}
+
+.landing .hero__copy .kicker,
+.auth__brand .kicker {
+  color: color-mix(in srgb, var(--bone) 75%, transparent);
 }
 
 /* Loom demo (first visit) */
