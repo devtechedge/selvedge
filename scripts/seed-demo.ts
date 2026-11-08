@@ -1,7 +1,7 @@
-import { createHash } from "node:crypto";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "../generated/client/client";
 import { hashPassword } from "../lib/password";
+import { checksumSnapshot } from "../lib/checksum";
 import { DEMO_ACCOUNTS, DEMO_PASSWORD } from "../lib/demo";
 import {
   computeWeavePlan,
@@ -223,7 +223,7 @@ async function main() {
     weftColors: towelColors.weftColors,
     ...towelDims,
   };
-  const checksum = createHash("sha256").update(JSON.stringify(snapshot)).digest("hex");
+  const checksum = checksumSnapshot(snapshot);
   const release = await prisma.release.create({
     data: {
       studioId: studio.id,
